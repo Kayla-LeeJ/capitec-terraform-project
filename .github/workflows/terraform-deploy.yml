@@ -1,0 +1,208 @@
+name: Terraform Deploy
+
+on:
+  pull_request:
+    branches: [dev, int, prod]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.github/workflows/**'
+  push:
+    branches: [dev, int, prod]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to target"
+        required: true
+        type: choice
+        options: [dev, int, prod]
+      action:
+        description: "Terraform action"
+        required: true
+        type: choice
+        options: [plan, apply, destroy]
+
+env:
+  TF_IN_AUTOMATION: "true"
+  AWS_REGION: af-south-1
+  TF_VERSION: "~1.15"
+
+permissions:
+  contents: read
+
+jobs:
+  fmt:
+    name: Format & Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+
+  plan:
+    name: Plan (${{ github.base_ref }})
+    if: github.event_name == 'pull_request'
+    needs: fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Init
+        run: terraform init -backend-config=values/${{ github.base_ref }}/${{ github.base_ref }}.tfbackend
+
+      - name: Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var-file=values/${{ github.base_ref }}/${{ github.base_ref }}.tfvars \
+            -out=tfplan \
+            -no-color
+          terraform show -no-color tfplan > plan_output.txt
+
+      - name: Save Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ github.base_ref }}
+          path: tfplan
+          retention-days: 7
+
+      - name: Comment plan on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('plan_output.txt', 'utf8').slice(0, 60000);
+            const marker = `<!-- terraform-plan-${{ github.base_ref }} -->`;
+            const body = `${marker}\n### 📋 Terraform Plan — \`${{ github.base_ref }}\`\n<details><summary>Show plan</summary>\n\n\`\`\`hcl\n${plan}\n\`\`\`\n</details>\n\n**To apply:** Merge this PR — apply runs automatically on push to \`${{ github.base_ref }}\``;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Plan Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## 📋 Terraform Plan — `${{ github.base_ref }}`
+          > Review the plan output in the **Plan** step above. Merge this PR to apply.
+          EOF
+
+  apply:
+    name: Apply
+    if: github.event_name == 'push'
+    needs: fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ github.ref_name }}
+    concurrency:
+      group: terraform-apply-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Init
+        run: terraform init -backend-config=values/${{ github.ref_name }}/${{ github.ref_name }}.tfbackend
+
+      - name: Apply
+        run: |
+          terraform apply \
+            -var-file=values/${{ github.ref_name }}/${{ github.ref_name }}.tfvars \
+            -auto-approve \
+            -no-color
+
+  manual:
+    name: Manual Dispatch
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ github.event.inputs.environment }}
+    concurrency:
+      group: terraform-apply-${{ github.event.inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Init
+        run: terraform init -backend-config=values/${{ github.event.inputs.environment }}/${{ github.event.inputs.environment }}.tfbackend
+
+      - name: Run
+        run: |
+          case "${{ github.event.inputs.action }}" in
+            plan)
+              terraform plan -var-file=values/${{ github.event.inputs.environment }}/${{ github.event.inputs.environment }}.tfvars -no-color
+              ;;
+            apply)
+              terraform apply -var-file=values/${{ github.event.inputs.environment }}/${{ github.event.inputs.environment }}.tfvars -auto-approve -no-color
+              ;;
+            destroy)
+              terraform destroy -var-file=values/${{ github.event.inputs.environment }}/${{ github.event.inputs.environment }}.tfvars -auto-approve -no-color
+              ;;
+          esac
