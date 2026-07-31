@@ -95,4 +95,14 @@ Naming convention: `jansmakl-eks-dev`
 
 ---
 
+---
+
+<div align="center">
+
+**Disclaimer:** This Terraform code has never `destroy`ed anything... permanently. 🚀
+
+Made with ☕ and occasional `terraform apply` panic.
+
+</div>
+
 ![footer](https://capsule-render.vercel.app/api?type=waving&color=FF9900&height=80&section=footer)
