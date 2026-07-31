@@ -31,6 +31,10 @@ on:
 env:
   AWS_REGION: af-south-1
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   terraform-plan:
     name: Terraform Plan
