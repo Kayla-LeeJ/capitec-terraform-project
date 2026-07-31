@@ -38,6 +38,7 @@ jobs:
   fmt:
     name: Format & Validate
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -52,6 +53,7 @@ jobs:
     if: github.event_name == 'pull_request'
     needs: fmt
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -136,6 +138,7 @@ jobs:
     if: github.event_name == 'push'
     needs: fmt
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     environment: ${{ github.ref_name }}
     concurrency:
       group: terraform-apply-${{ github.ref_name }}
@@ -170,6 +173,7 @@ jobs:
     name: Manual ${{ github.event.inputs.action }} (${{ github.event.inputs.environment }})
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     environment: ${{ github.event.inputs.environment }}
     concurrency:
       group: terraform-apply-${{ github.event.inputs.environment }}
@@ -206,155 +210,3 @@ jobs:
               terraform destroy -var-file=values/${{ github.event.inputs.environment }}/${{ github.event.inputs.environment }}.tfvars -auto-approve -no-color
               ;;
           esac
-
-jobs:
-  terraform-plan:
-    name: Terraform Plan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Determine Environment
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            ENV="${{ github.event.inputs.environment }}"
-          else
-            ENV="${{ github.base_ref || github.ref_name }}"
-          fi
-          echo "ENV=${ENV}" >> $GITHUB_ENV
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "~1.15"
-
-      - name: Terraform Format
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Init
-        run: terraform init -backend-config="values/${{ env.ENV }}/${{ env.ENV }}.tfbackend"
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan -var-file="values/${{ env.ENV }}/${{ env.ENV }}.tfvars"
-
-      - name: Save Plan Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-${{ env.ENV }}
-          path: tfplan
-          retention-days: 7
-
-      - name: Comment Plan on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## ✅ Terraform Plan - ${{ env.ENV }}\n\n📋 Plan generated and ready for review.\n\n**To apply this plan:**\n1. Go to Actions → "Terraform Deploy"\n2. Click "Run workflow"\n3. Select environment: \`${{ env.ENV }}\`\n4. Select action: \`apply\`\n5. Click "Run workflow"\n\n[View Plan Details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
-            })
-
-      - name: Create Plan Summary
-        run: |
-          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
-          ## 📋 Terraform Plan Summary - ${{ env.ENV }}
-          
-          ### ✅ Plan Status: SUCCESS
-          
-          **Environment:** `${{ env.ENV }}`  
-          **Triggered by:** ${{ github.event_name }}  
-          **Commit:** [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})  
-          
-          ---
-          
-          ### 🚀 Next Steps
-          
-          #### To Apply Changes:
-          1. Review the plan output in the **Terraform Plan** step above
-          2. Go to **Actions** tab
-          3. Click **"Run workflow"** button (top right)
-          4. Select:
-             - **Environment:** `${{ env.ENV }}`
-             - **Action:** `apply`
-          5. Click **"Run workflow"** (green button)
-          6. **Approve** when prompted
-          
-          **Plan artifact saved:** `tfplan-${{ env.ENV }}` (7 days retention)
-          
-          ---
-          
-          > ⚠️ **Review the plan carefully before applying!**  
-          > Look for unexpected resource changes, deletions, or modifications.
-          
-          EOF
-
-  terraform-apply:
-    name: Terraform Apply/Destroy
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    environment:
-      name: ${{ github.event.inputs.environment }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Determine Action and Environment
-        run: |
-          ENV="${{ github.event.inputs.environment }}"
-          ACTION="${{ github.event.inputs.action }}"
-          echo "ENV=${ENV}" >> $GITHUB_ENV
-          echo "ACTION=${ACTION}" >> $GITHUB_ENV
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "~1.15"
-
-      - name: Terraform Init
-        run: terraform init -backend-config="values/${{ env.ENV }}/${{ env.ENV }}.tfbackend"
-
-      - name: Download Plan Artifact
-        if: env.ACTION == 'apply'
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan-${{ env.ENV }}
-          path: ./
-        continue-on-error: true
-
-      - name: Check Plan Exists
-        if: env.ACTION == 'apply'
-        run: |
-          if [ ! -f tfplan ]; then
-            echo "⚠️  No plan artifact found. Running plan first..."
-            terraform plan -out=tfplan -var-file="values/${{ env.ENV }}/${{ env.ENV }}.tfvars"
-          fi
-
-      - name: Terraform Apply
-        if: env.ACTION == 'apply'
-        run: terraform apply -auto-approve tfplan
-
-      - name: Terraform Destroy
-        if: env.ACTION == 'destroy'
-        run: terraform destroy -auto-approve -var-file="values/${{ env.ENV }}/${{ env.ENV }}.tfvars"
