@@ -1,7 +1,6 @@
 #--------------------------------#
 # Module: subnet
 #--------------------------------#
-
 #Resource: aws_subnet
 resource "aws_subnet" "az" {
   for_each                = { for i, az in var.availability_zones : az => i }

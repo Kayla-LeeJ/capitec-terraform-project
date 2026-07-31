@@ -56,7 +56,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      id-token: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -141,7 +140,6 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -158,12 +156,15 @@ jobs:
       - name: Init
         run: terraform init -backend-config=values/${{ github.ref_name }}/${{ github.ref_name }}.tfbackend
 
-      - name: Apply
+      - name: Plan
         run: |
-          terraform apply \
+          terraform plan \
             -var-file=values/${{ github.ref_name }}/${{ github.ref_name }}.tfvars \
-            -auto-approve \
+            -out=tfplan \
             -no-color
+
+      - name: Apply
+        run: terraform apply -auto-approve -no-color tfplan
 
   manual:
     name: Manual Dispatch
@@ -176,7 +177,6 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
 
