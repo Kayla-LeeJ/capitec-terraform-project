@@ -3,8 +3,18 @@ name: Terraform Deploy
 on:
   push:
     branches: [dev, int, prod]
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '**.md'
+      - '.github/workflows/**'
   pull_request:
     branches: [dev, int, prod]
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '**.md'
+      - '.github/workflows/**'
 
 env:
   AWS_REGION: af-south-1
