@@ -1,28 +1,6 @@
 #--------------------------------#
 # Module: eks
 #--------------------------------# 
-#Resource: aws_subnet
-resource "aws_subnet" "az" {
-  for_each                = { for i, az in var.availability_zones : az => i }
-  vpc_id                  = var.vpc_id
-  cidr_block              = local.subnet_allocation.kayla_lee_jansma.subnets[each.value]
-  availability_zone       = each.key
-  map_public_ip_on_launch = true
-
-  tags = merge(local.default_tags, {
-    Name = "${var.prefix}-az${each.value + 1}-subnet-${var.environment}"
-  })
-  lifecycle {
-    ignore_changes = [tags]
-  }
-}
-
-#Resource: aws_route_table_association
-resource "aws_route_table_association" "rt-association" {
-  for_each       = aws_subnet.az
-  subnet_id      = each.value.id
-  route_table_id = var.rt_id
-}
 
 #Resource: aws_eks_cluster
 resource "aws_eks_cluster" "eks-cluster" {
@@ -37,7 +15,7 @@ resource "aws_eks_cluster" "eks-cluster" {
   version  = var.eks_version
 
   vpc_config {
-    subnet_ids = values(aws_subnet.az)[*].id
+    subnet_ids = var.subnet_ids
   }
 
   # Ensure that IAM Role permissions are created before and deleted after EKS Cluster handling. 
@@ -151,7 +129,7 @@ resource "aws_eks_node_group" "eks-ng" {
   cluster_name    = aws_eks_cluster.eks-cluster.name
   node_group_name = "${var.prefix}-${var.resource}-ng-${var.environment}"
   node_role_arn   = aws_iam_role.node-iam-role.arn
-  subnet_ids      = values(aws_subnet.az)[*].id
+  subnet_ids      = var.subnet_ids
 
   capacity_type  = var.capacity_type
   instance_types = var.instance_types

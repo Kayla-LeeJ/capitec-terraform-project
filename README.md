@@ -19,10 +19,20 @@ A modular Terraform configuration for provisioning AWS infrastructure including 
 
 ```mermaid
 graph LR
-    A["AWS Provider<br/>(af-south-1)"] --> B["📦 Modules"]
-    B --> B1["🐙 EKS<br/>Kubernetes Cluster"]
-    B --> B2["💾 S3<br/>Object Storage"]
-    B --> B3["🌐 Subnet<br/>VPC Networking"]
+    A["AWS Provider<br/>(af-south-1)"] --> B["📦 Root Module"]
+    
+    B --> SN["🌐 Subnet Module"]
+    B --> EKS["🐙 EKS Module"]
+    B --> S3["💾 S3 Module"]
+    
+    SN --> SN1["aws_subnet"]
+    SN --> SN2["route_table_assoc"]
+    
+    EKS --> EKS1["aws_eks_cluster"]
+    EKS --> EKS2["aws_eks_node_group"]
+    EKS --> EKS3["aws_iam_role"]
+    
+    EKS -.Depends On.-> SN
     
     C["🔧 Environments"] --> D["dev"]
     C --> E["int"]
@@ -33,23 +43,67 @@ graph LR
     F --> G
     
     style A fill:#FF9900,color:#fff
-    style B1 fill:#FF9900,color:#fff
-    style B2 fill:#FF9900,color:#fff
-    style B3 fill:#FF9900,color:#fff
+    style EKS fill:#FF9900,color:#fff
+    style SN fill:#FF9900,color:#fff
+    style S3 fill:#FF9900,color:#fff
+    style EKS1 fill:#FFB84D,color:#000
+    style EKS2 fill:#FFB84D,color:#000
+    style EKS3 fill:#FFB84D,color:#000
+    style SN1 fill:#FFB84D,color:#000
+    style SN2 fill:#FFB84D,color:#000
 ```
 
 ---
 
 ## 📁 Project Structure
 
-| Directory | Purpose |
-|-----------|---------|
-| `modules/eks/` | 🐙 EKS cluster configuration with auto-scaling groups |
-| `modules/s3/` | 💾 S3 bucket definitions |
-| `modules/subnet/` | 🌐 VPC subnet and routing setup |
-| `values/{env}/` | 🔑 Environment-specific variables & backend configs |
-| `locals.tf` | 📌 Local variables and tags |
-| `providers.tf` | ☁️ AWS provider configuration |
+| File/Directory | Purpose |
+|---|---|
+| `main.tf` | 📌 Root module orchestration (calls subnet → EKS modules) |
+| `providers.tf` | ☁️ AWS provider & S3 backend config |
+| `variables.tf` | 🔑 Root-level input variables |
+| `outputs.tf` | 📤 Root-level outputs |
+| `locals.tf` | 🏷️ Local values (if needed) |
+| `modules/subnet/` | 🌐 Subnet module (VPC networking) |
+| `modules/eks/` | 🐙 EKS module (Kubernetes cluster) |
+| `modules/s3/` | 💾 S3 module (object storage) |
+| `values/{env}/` | 🔑 Environment-specific tfvars & backend configs |
+| `.github/workflows/` | 🔄 CI/CD pipeline (plan → approve → apply) |
+
+---
+
+## 🔄 Module Orchestration (main.tf)
+
+```terraform
+# 1. Create subnet infrastructure first
+module "kayla-subnet" {
+  source      = "./modules/subnet"
+  environment = var.environment
+  lookup_key  = "kayla_lee_jansma"
+  # ... other variables
+}
+
+# 2. Create EKS cluster using subnets
+module "kayla-eks" {
+  source     = "./modules/eks"
+  subnet_ids = module.kayla-subnet.subnet_ids  # ← Dependency
+  environment = var.environment
+  # ... other variables
+  
+  depends_on = [module.kayla-subnet]
+}
+```
+
+**Flow:**
+```
+terraform apply
+  ├─ Subnet module runs first
+  │  └─ Creates subnets, route tables
+  │
+  └─ EKS module runs after
+     └─ Receives subnet_ids
+     └─ Creates cluster & nodes
+```
 
 ---
 
@@ -130,21 +184,63 @@ af-south-1 (Africa - Cape Town)
 
 ## 📊 Module Details
 
+### 🌐 Subnet Module
+**Location:** `modules/subnet/`
+
+Manages **all VPC networking infrastructure**:
+- Creates subnets across multiple availability zones (af-south-1a, af-south-1b, af-south-1c)
+- Configures route table associations
+- Maintains subnet allocation mapping for all training participants
+- Handles default tags and naming conventions
+- **Outputs:** `subnet_ids`, `subnet_map`, `default_tags`
+
+**Variables:**
+```terraform
+availability_zones  # List of AZs
+vpc_id             # VPC to use
+rt_id              # Route table ID
+lookup_key         # Name mapping (e.g., "kayla_lee_jansma")
+```
+
 ### 🐙 EKS Module
-Creates an EKS Kubernetes cluster with:
-- Multi-AZ subnet deployment
-- Auto-scaling node groups
-- Route table associations
-- SPOT/ON_DEMAND capacity options
+**Location:** `modules/eks/`
+
+Creates **Kubernetes infrastructure only**:
+- EKS cluster with API-only authentication mode
+- EKS node groups with auto-scaling
+- IAM roles and policies (cluster + node roles)
+- Security group rules for NodePort services
+- EKS access entries for cluster management
+- **Depends On:** Subnet module (receives `subnet_ids` as input)
+
+**Variables:**
+```terraform
+subnet_ids        # From subnet module output
+capacity_type     # ON_DEMAND or SPOT
+instance_types    # Node instance types
+node_min/max/desired_size  # Auto-scaling config
+```
 
 ### 💾 S3 Module
+**Location:** `modules/s3/`
+
 S3 bucket configuration for object storage (add-on ready)
 
-### 🌐 Subnet Module
-VPC networking with:
-- Multiple availability zones
-- Public subnet configuration
-- Route table management
+### 🔗 Module Dependencies
+```
+Subnet Module
+    ↓ (outputs subnet_ids)
+    ↓
+EKS Module
+    ↓
+Node Groups + Cluster use subnets
+```
+
+This separation allows:
+- ✅ Reusing subnets for other resources (RDS, Lambda, etc.)
+- ✅ Independent updates to networking vs compute
+- ✅ Better testability and maintainability
+- ✅ Clear ownership of resources
 
 ---
 

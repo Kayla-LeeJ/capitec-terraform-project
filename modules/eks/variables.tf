@@ -1,21 +1,6 @@
-variable "availability_zones" {
-  type    = list(string)
-  default = ["af-south-1a", "af-south-1b", "af-south-1c"]
-}
-
 variable "resource" {
   type    = string
   default = "eks"
-}
-
-variable "vpc_id" {
-  type    = string
-  default = "vpc-04afeafc288c397af"
-}
-
-variable "rt_id" {
-  type    = string
-  default = "rtb-023fc1846d75af176"
 }
 
 variable "eks_version" {
@@ -73,5 +58,7 @@ variable "capacity_type" {
   }
 }
 
-
-# aws eks update-kubeconfig --region af-south-1 --name jansmakl-eks-dev
+variable "subnet_ids" {
+  type        = list(string)
+  description = "List of subnet IDs for EKS cluster"
+}
