@@ -3,7 +3,6 @@
 [![Terraform](https://img.shields.io/badge/Terraform-~%201.15-844FFF?logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![AWS](https://img.shields.io/badge/AWS-6.0-FF9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
 [![Region](https://img.shields.io/badge/Region-af--south--1-informational)](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Modules](https://img.shields.io/badge/Modules-3-blue)](modules/)
 [![Environments](https://img.shields.io/badge/Environments-3-blueviolet)](values/)
 [![Infrastructure](https://img.shields.io/badge/Infrastructure-EKS%20%7C%20S3%20%7C%20VPC-informational)](.)
@@ -119,7 +118,7 @@ terraform apply -var-file="./values/prod/prod.tfvars"
 ### Naming Convention
 ```
 {surname}{initials}-{resource}-{environment}
-Example: jansma-kl-eks-dev
+Example: jansmakl-eks-dev
 ```
 
 ### AWS Region
@@ -154,7 +153,7 @@ VPC networking with:
 Backend uses **S3 with remote state**:
 ```bash
 # Naming: {surname}{initials}-s3-backend
-# Example: jansmakers3-backend
+# Example: jansmakl-s3-backend
 ```
 
 Each environment maintains isolated state:
@@ -204,17 +203,10 @@ aws eks update-kubeconfig --name {cluster-name} --region af-south-1
 
 ---
 
-## 🤝 Support
-
-For issues or questions, check:
-- Terraform logs: `terraform debug`
-- AWS Console: https://console.aws.amazon.com
-- Kubectl access: `kubectl cluster-info`
-
----
-
 <div align="center">
 
-**Built with ❤️ for Capitec Infrastructure**
+**Disclaimer:** This Terraform code has never `destroy`ed anything... permanently. 🚀
+
+Made with ☕ and occasional `terraform apply` panic.
 
 </div>
