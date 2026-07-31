@@ -92,6 +92,40 @@ jobs:
               body: `## ✅ Terraform Plan - ${{ env.ENV }}\n\n📋 Plan generated and ready for review.\n\n**To apply this plan:**\n1. Go to Actions → "Terraform Deploy"\n2. Click "Run workflow"\n3. Select environment: \`${{ env.ENV }}\`\n4. Select action: \`apply\`\n5. Click "Run workflow"\n\n[View Plan Details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
             })
 
+      - name: Create Plan Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## 📋 Terraform Plan Summary - ${{ env.ENV }}
+          
+          ### ✅ Plan Status: SUCCESS
+          
+          **Environment:** `${{ env.ENV }}`  
+          **Triggered by:** ${{ github.event_name }}  
+          **Commit:** [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})  
+          
+          ---
+          
+          ### 🚀 Next Steps
+          
+          #### To Apply Changes:
+          1. Review the plan output in the **Terraform Plan** step above
+          2. Go to **Actions** tab
+          3. Click **"Run workflow"** button (top right)
+          4. Select:
+             - **Environment:** `${{ env.ENV }}`
+             - **Action:** `apply`
+          5. Click **"Run workflow"** (green button)
+          6. **Approve** when prompted
+          
+          **Plan artifact saved:** `tfplan-${{ env.ENV }}` (7 days retention)
+          
+          ---
+          
+          > ⚠️ **Review the plan carefully before applying!**  
+          > Look for unexpected resource changes, deletions, or modifications.
+          
+          EOF
+
   terraform-apply:
     name: Terraform Apply/Destroy
     runs-on: ubuntu-latest
