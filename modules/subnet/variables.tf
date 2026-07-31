@@ -14,12 +14,12 @@ variable "rt_id" {
 }
 
 variable "surname" {
-  type = string
+  type    = string
   default = "jansma"
 }
 
 variable "initials" {
-  type = string
+  type    = string
   default = "kl"
 }
 

@@ -7,11 +7,11 @@
 # }
 
 module "kayla-subnet" {
-  source        = "./modules/subnet"
-  initials      = var.initials
-  surname       = var.surname
-  environment   = var.environment
-  lookup_key    = "kayla_lee_jansma"
+  source      = "./modules/subnet"
+  initials    = var.initials
+  surname     = var.surname
+  environment = var.environment
+  lookup_key  = "kayla_lee_jansma"
 }
 
 module "kayla-eks" {
