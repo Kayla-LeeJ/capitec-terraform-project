@@ -14,7 +14,7 @@ Modular Terraform for provisioning EKS, S3, and VPC networking across dev, int, 
 graph TB
     A["☁️ AWS Provider<br/>(af-south-1)"] --> B["📦 Root Module"]
 
-    subgraph Modules
+    subgraph Modules[" Modules"]
         B --> SN["🌐 Subnet Module"]
         B --> EKS["🐙 EKS Module"]
         B --> S3["💾 S3 Module"]
@@ -44,6 +44,8 @@ graph TB
     style EKS2 fill:#FFB84D,color:#000
     style EKS3 fill:#FFB84D,color:#000
     style G fill:#232F3E,color:#fff
+    style Modules fill:#1a1a1a,color:#fff,stroke:#FF9900
+    style Environments fill:#1a1a1a,color:#fff,stroke:#666
 ```
 
 ---
