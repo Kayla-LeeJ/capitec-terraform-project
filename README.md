@@ -1,23 +1,23 @@
-# 🚀 Capitec Terraform Project
+![header](https://capsule-render.vercel.app/api?type=waving&color=FF9900&height=120&section=header&text=Capitec%20Terraform%20Project&fontSize=36&fontColor=fff&animation=fadeIn)
 
-[\![Terraform](https://img.shields.io/badge/Terraform-~%201.15-844FFF?logo=terraform&logoColor=white)](https://www.terraform.io/)
-[\![AWS](https://img.shields.io/badge/AWS-6.0-FF9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
-[\![Region](https://img.shields.io/badge/Region-af--south--1-informational)](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)
+[![Terraform](https://img.shields.io/badge/Terraform-~%201.15-844FFF?logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-6.0-FF9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
+[![Region](https://img.shields.io/badge/Region-af--south--1-informational)](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)
 
-Modular Terraform for provisioning EKS, S3, and VPC networking across dev, int, and prod on AWS `af-south-1`.
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=FF9900&width=500&lines=Modular+Terraform+on+AWS+af-south-1;EKS+%7C+S3+%7C+VPC+Networking;dev+%E2%86%92+int+%E2%86%92+prod)](https://git.io/typing-svg)
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TB
-    A["☁️ AWS Provider<br/>(af-south-1)"] --> B["📦 Root Module"]
+    A["AWS Provider (af-south-1)"] --> B["Root Module"]
 
     subgraph Modules[" Modules"]
-        B --> SN["🌐 Subnet Module"]
-        B --> EKS["🐙 EKS Module"]
-        B --> S3["💾 S3 Module"]
+        B --> SN["Subnet Module"]
+        B --> EKS["EKS Module"]
+        B --> S3["S3 Module"]
         SN --> SN1["aws_subnet"]
         SN --> SN2["route_table_assoc"]
         EKS --> EKS1["aws_eks_cluster"]
@@ -26,11 +26,11 @@ graph TB
         EKS -. depends_on .-> SN
     end
 
-    subgraph Environments
-        C["🔧 Per Environment"] --> D["dev"]
+    subgraph Environments[" Environments"]
+        C["Per Environment"] --> D["dev"]
         C --> E["int"]
         C --> F["prod"]
-        D & E & F --> G["🗄️ S3 Backend State"]
+        D & E & F --> G["S3 Backend State"]
     end
 
     style A fill:#FF9900,color:#fff
@@ -50,7 +50,7 @@ graph TB
 
 ---
 
-## 🚀 Usage
+## Usage
 
 ```bash
 # Init (swap env as needed: dev, int, prod)
@@ -71,7 +71,7 @@ aws eks update-kubeconfig --region af-south-1 --name jansmakl-eks-dev
 
 ---
 
-## 🔄 CI/CD
+## CI/CD
 
 | Trigger | Action |
 |---------|--------|
@@ -82,7 +82,7 @@ aws eks update-kubeconfig --region af-south-1 --name jansmakl-eks-dev
 
 ---
 
-## ⚙️ Key Variables
+## Key Variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
@@ -95,10 +95,4 @@ Naming convention: `jansmakl-eks-dev`
 
 ---
 
-<div align="center">
-
-**Disclaimer:** This Terraform code has never `destroy`ed anything... permanently. 🚀
-
-Made with ☕ and occasional `terraform apply` panic.
-
-</div>
+![footer](https://capsule-render.vercel.app/api?type=waving&color=FF9900&height=80&section=footer)
