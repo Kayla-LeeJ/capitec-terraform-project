@@ -19,7 +19,7 @@ resource "aws_subnet" "az" {
 
 #Resource: aws_route_table_association
 resource "aws_route_table_association" "rt-association" {
-  for_each       = aws_subnet.az
-  subnet_id      = each.value.id
+  for_each       = toset(var.availability_zones)
+  subnet_id      = aws_subnet.az[each.key].id
   route_table_id = var.rt_id
 }
