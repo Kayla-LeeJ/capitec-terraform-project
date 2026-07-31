@@ -1,26 +1,29 @@
 variable "availability_zones" {
-  type    = list(string)
-  default = ["af-south-1a", "af-south-1b", "af-south-1c"]
+  type        = list(string)
+  description = "List of availability zones to create subnets in"
+  default     = ["af-south-1a", "af-south-1b", "af-south-1c"]
 }
 
 variable "vpc_id" {
-  type    = string
-  default = "vpc-04afeafc288c397af"
+  type        = string
+  description = "ID of the VPC to create subnets in"
 }
 
 variable "rt_id" {
-  type    = string
-  default = "rtb-023fc1846d75af176"
+  type        = string
+  description = "ID of the route table to associate with subnets"
 }
 
 variable "surname" {
-  type    = string
-  default = "jansma"
+  type        = string
+  description = "Surname used in tags"
+  default     = "jansma"
 }
 
 variable "initials" {
-  type    = string
-  default = "kl"
+  type        = string
+  description = "Initials used in tags"
+  default     = "kl"
 }
 
 variable "environment" {
@@ -29,12 +32,13 @@ variable "environment" {
 }
 
 variable "prefix" {
-  type    = string
-  default = "jansmakl"
+  type        = string
+  description = "Prefix used for all resource names"
+  default     = "jansmakl"
 }
 
 variable "lookup_key" {
   type        = string
-  description = "Key to lookup in subnet_allocation map (e.g., 'kayla_lee_jansma')"
+  description = "Key to look up subnet CIDR allocation in the subnet_allocation map"
   default     = "kayla_lee_jansma"
 }
