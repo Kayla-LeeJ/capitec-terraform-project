@@ -1,21 +1,25 @@
 variable "resource" {
-  type    = string
-  default = "eks"
+  type        = string
+  description = "Resource type label used in naming"
+  default     = "eks"
 }
 
 variable "eks_version" {
-  type    = string
-  default = "1.35"
+  type        = string
+  description = "Kubernetes version for the EKS cluster"
+  default     = "1.35"
 }
 
 variable "surname" {
-  type    = string
-  default = "jansma"
+  type        = string
+  description = "Surname used in tags"
+  default     = "jansma"
 }
 
 variable "initials" {
-  type    = string
-  default = "kl"
+  type        = string
+  description = "Initials used in tags"
+  default     = "kl"
 }
 
 variable "environment" {
@@ -24,28 +28,33 @@ variable "environment" {
 }
 
 variable "prefix" {
-  type    = string
-  default = "jansmakl"
+  type        = string
+  description = "Prefix used for all resource names"
+  default     = "jansmakl"
 }
 
 variable "instance_types" {
-  type    = list(string)
-  default = ["t3.micro"]
+  type        = list(string)
+  description = "EC2 instance types for EKS worker nodes"
+  default     = ["t3.micro"]
 }
 
 variable "node_min_size" {
-  type    = number
-  default = 1
+  type        = number
+  description = "Minimum number of nodes in the EKS node group"
+  default     = 1
 }
 
 variable "node_max_size" {
-  type    = number
-  default = 3
+  type        = number
+  description = "Maximum number of nodes in the EKS node group"
+  default     = 3
 }
 
 variable "node_desired_size" {
-  type    = number
-  default = 2
+  type        = number
+  description = "Desired number of nodes in the EKS node group"
+  default     = 2
 }
 
 variable "capacity_type" {
@@ -60,5 +69,5 @@ variable "capacity_type" {
 
 variable "subnet_ids" {
   type        = list(string)
-  description = "List of subnet IDs for EKS cluster"
+  description = "List of subnet IDs for the EKS cluster and node group"
 }
